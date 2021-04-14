@@ -1,3 +1,4 @@
+import 'package:animations/animations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
@@ -62,10 +63,20 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-      body:
-          _showList // TODO: 1) Add PageTransitionSwitcher with FadeThroughTransition
-              ? ListExample()
-              : GridExample(),
+      body: PageTransitionSwitcher(
+        transitionBuilder: (
+          Widget child,
+          Animation<double> animation,
+          Animation<double> secondaryAnimation,
+        ) {
+          return FadeThroughTransition(
+            animation: animation,
+            secondaryAnimation: secondaryAnimation,
+            child: child,
+          );
+        },
+        child: _showList ? ListExample() : GridExample(),
+      ),
       bottomSheet: Padding(
         padding: const EdgeInsets.all(8.0),
         child: SwitchListTile(
@@ -91,20 +102,26 @@ class ListExample extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListView.builder(
       itemBuilder: (BuildContext context, int index) {
-        // TODO: 2) Add OpenContainer (container transform)
-        return ListTile(
-          leading: Image.network(
-            _image0,
-            width: 60.0,
-            fit: BoxFit.cover,
-          ),
-          title: Text('Title $index'),
-          onTap: () => Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) =>
-                  DetailScreen(title: 'Title $index', imageUrl: _image0),
-            ),
-          ),
+        return OpenContainer(
+          transitionType: ContainerTransitionType.fadeThrough,
+          closedBuilder: (BuildContext _, VoidCallback openContainer) {
+            return ListTile(
+              leading: Image.network(
+                _image0,
+                width: 60.0,
+                fit: BoxFit.cover,
+              ),
+              title: Text('Title $index'),
+              onTap: openContainer,
+            );
+          },
+          openBuilder: (BuildContext _, VoidCallback __) {
+            return DetailScreen(
+              title: 'Title $index',
+              imageUrl: _image0,
+            );
+          },
+          onClosed: (_) => print('Closed'),
         );
       },
     );
@@ -122,26 +139,32 @@ class GridExample extends StatelessWidget {
       itemBuilder: (BuildContext context, int index) {
         return Padding(
           padding: const EdgeInsets.all(8.0),
-          child: GestureDetector(
-            // TODO: 3) Add OpenContainer (container transform)
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) =>
-                    DetailScreen(title: 'Title $index', imageUrl: _image1),
-              ),
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Image.network(
-                  _image1,
-                  height: 100.0,
-                  fit: BoxFit.cover,
+          child: OpenContainer(
+            transitionType: ContainerTransitionType.fade,
+            closedBuilder: (BuildContext _, VoidCallback openContainer) {
+              return GestureDetector(
+                onTap: openContainer,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Image.network(
+                      _image1,
+                      height: 100.0,
+                      fit: BoxFit.cover,
+                    ),
+                    const SizedBox(height: 8.0),
+                    Text('Title $index'),
+                  ],
                 ),
-                const SizedBox(height: 8.0),
-                Text('Title $index'),
-              ],
-            ),
+              );
+            },
+            openBuilder: (BuildContext _, VoidCallback __) {
+              return DetailScreen(
+                title: 'Title $index',
+                imageUrl: _image1,
+              );
+            },
+            onClosed: (_) => print('Closed'),
           ),
         );
       },
@@ -172,35 +195,50 @@ class _DetailScreenState extends State<DetailScreen> {
       appBar: AppBar(
         title: const Text('Detail Screen'),
       ),
-      body:
-          _largePhoto // TODO: 4) Add PageTransitionSwitcher with SharedAxisTransition (scaled)
-              ? GestureDetector(
-                  onTap: () => setState(() => _largePhoto = !_largePhoto),
-                  child: Image.network(
-                    widget.imageUrl,
-                    height: double.infinity,
-                    width: double.infinity,
-                    fit: BoxFit.cover,
-                  ),
-                )
-              : Padding(
-                  padding: const EdgeInsets.all(20.0),
-                  child: Column(
-                    children: [
-                      GestureDetector(
-                        onTap: () => setState(() => _largePhoto = !_largePhoto),
-                        child: Image.network(
-                          widget.imageUrl,
-                          fit: BoxFit.cover,
-                        ),
-                      ),
-                      const SizedBox(height: 20.0),
-                      Text(widget.title),
-                      const SizedBox(height: 20.0),
-                      const Text(_loremIpsumParagraph),
-                    ],
-                  ),
+      body: PageTransitionSwitcher(
+        duration: const Duration(milliseconds: 500),
+        reverse: !_largePhoto,
+        transitionBuilder: (
+          Widget child,
+          Animation<double> animation,
+          Animation<double> secondaryAnimation,
+        ) {
+          return SharedAxisTransition(
+            child: child,
+            animation: animation,
+            secondaryAnimation: secondaryAnimation,
+            transitionType: SharedAxisTransitionType.scaled,
+          );
+        },
+        child: _largePhoto
+            ? GestureDetector(
+                onTap: () => setState(() => _largePhoto = !_largePhoto),
+                child: Image.network(
+                  widget.imageUrl,
+                  height: double.infinity,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
                 ),
+              )
+            : Padding(
+                padding: const EdgeInsets.all(20.0),
+                child: Column(
+                  children: [
+                    GestureDetector(
+                      onTap: () => setState(() => _largePhoto = !_largePhoto),
+                      child: Image.network(
+                        widget.imageUrl,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                    const SizedBox(height: 20.0),
+                    Text(widget.title),
+                    const SizedBox(height: 20.0),
+                    const Text(_loremIpsumParagraph),
+                  ],
+                ),
+              ),
+      ),
     );
   }
 }
